@@ -17,7 +17,7 @@ assets/
   app.js                — SPA transitions, slot picker logic, form validation, Apps Script GET/POST
   bg_info.jpeg          — confirmed background photo (TSA founder in studio, portrait)
 apps-script/
-  Code.gs               — Google Apps Script backend (slot availability doGet, reservations doPost, confirmation email)
+  Code.gs               — Google Apps Script backend (slot availability doGet, reservations doPost)
 CNAME                   — GitHub Pages custom domain
 README.md               — project overview and local dev instructions
 DEPLOYMENT.md           — step-by-step Apps Script + GitHub Pages deploy guide
@@ -49,18 +49,19 @@ python3 -m http.server 8080
 | 1   | #p1 | The Experience | forward arrow visible |
 | 2   | #p2 | What to Expect | forward arrow hidden — "Reserve your spot →" button only |
 | 3   | #p3 | Slot Reservation | forward arrow hidden — date/slot picker then submit; scrollable |
-| 4   | #p4 | Confirmation | both nav arrows hidden |
+| 4   | #p4 | Request Received | both nav arrows hidden |
 
 Keyboard (ArrowRight/Enter) and swipe navigation are disabled on pages 2 and 3.
 
 ### Slot picker flow (#p3)
 
-Three-step progressive reveal on a single scrollable page:
+Four-step progressive reveal on a single scrollable page:
 1. **Date buttons** — May 8 / May 9 / May 10 (always visible)
-2. **Time slot buttons** — 7 hourly slots, revealed after date selected; full slots (≥ 10 bookings) get `.full` class and are `disabled`
-3. **Details form** — name, email (required), Instagram, TikTok, phone (optional); revealed after slot selected
+2. **Time slot buttons** — 7 hourly slots, revealed after date selected; slots at total capacity (≥ 10 confirmed bookings) get `.full` class and are `disabled`
+3. **Party type** — "Just me" (solo) / "With a +1" (plus_one) — required, revealed with the form
+4. **Details form** — name (required), email (required), WhatsApp number (required), Instagram, TikTok (optional); revealed after slot selected
 
-Slot availability is fetched via `doGet(?action=slots)` every time the user enters #p3. Full-slot state is also enforced server-side on `doPost`.
+Slot availability is fetched via `doGet(?action=slots)` every time the user enters #p3. Slots are greyed on total confirmed count only — solo cap is enforced server-side, not in the UI.
 
 ## Backend
 
@@ -71,19 +72,37 @@ See `DEPLOYMENT.md` for setup and re-deploy instructions.
 `SCRIPT_URL` must be updated after deploying the `Code.gs` to the T's Armoire org account.
 
 **`doGet(?action=slots)` — slot availability:**  
-Returns booking counts per date and time slot so the frontend can grey out full slots.  
-Response shape: `{ ok: true, slots: { "May 8": { "10:30 AM – 11:30 AM": N, ... }, ... } }`
+Returns confirmed booking counts per date, time slot, and party type, plus the capacity caps. Slots are greyed when `total >= caps.total`.  
+Response shape:
+```json
+{
+  "ok": true,
+  "slots": {
+    "May 8": {
+      "10:30 AM – 11:30 AM": { "solo": 1, "plus_one": 3, "total": 4 }
+    }
+  },
+  "caps": { "solo": 3, "total": 10 }
+}
+```
 
 **`doPost` — reservation:**  
 Fields sent in POST body:
 
 ```
-id, name, email, instagram, tiktok, phone, date, time_slot, registered_at
+id, name, email, phone, instagram, tiktok, party_type, date, time_slot, registered_at
 ```
 
+All submissions are accepted (no hard slot-full rejection). The backend assigns `Status: Confirmed` or `Status: Waitlist` based on current confirmed counts.
+
 **Sheet name:** `Reservations`  
-**Sheet columns:** ID · Name · Email · Instagram · TikTok · Phone · Date · Time Slot · Registered At  
-**Capacity:** 10 reservations per date+slot combination — enforced server-side on every POST.
+**Sheet columns:** ID · Name · Email · Phone · Instagram · TikTok · Date · Time Slot · Party Type · Status · Submitted At
+
+**Capacity constants (in `Code.gs`):**
+- `SLOT_CAPACITY = 10` — max confirmed bookings per date+slot (total)
+- `SOLO_CAP = 3` — max confirmed solo bookings per date+slot
+
+Status logic (`_determineStatus`): if total confirmed ≥ `SLOT_CAPACITY`, or party type is solo and solo confirmed ≥ `SOLO_CAP` → `Waitlist`; otherwise → `Confirmed`. Team manually messages guests per their status via WhatsApp.
 
 ## Design tokens
 

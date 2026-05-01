@@ -7,7 +7,7 @@ Live at: `launch.tsarmoiremanufacturing.com.np`
 
 ## What it is
 
-A 5-page single-page app with a curtain-wipe transition system. Visitors move through an opening page, the event story, a "What to Expect" content page, a date + time slot picker with a details form, and a confirmation page. Reservations are saved to a Google Sheet and trigger a confirmation email with the guest's chosen date and time.
+A 5-page single-page app with a curtain-wipe transition system. Visitors move through an opening page, the event story, a "What to Expect" content page, a date + time slot picker with a details form, and a request-received confirmation page. Reservations are saved to a Google Sheet and the team confirms each booking manually via WhatsApp.
 
 ## File structure
 
@@ -18,7 +18,7 @@ assets/
   app.js            — transitions, slot picker logic, form validation, Apps Script POST/GET
   bg_info.jpeg      — confirmed background photo (TSA founder in studio)
 apps-script/
-  Code.gs           — backend: slot availability (doGet), reservations (doPost), confirmation email
+  Code.gs           — backend: slot availability (doGet), reservations (doPost)
 CNAME               — GitHub Pages custom domain
 DEPLOYMENT.md       — step-by-step deploy guide (Apps Script + GitHub Pages)
 ```
@@ -60,24 +60,27 @@ See `DEPLOYMENT.md` for the full Apps Script setup.
 | 1 | `#p0` | Opening — TSA Café Reservation |
 | 2 | `#p1` | The Experience — event story |
 | 3 | `#p2` | What to Expect — experience highlights + Reserve your spot button |
-| 4 | `#p3` | Slot Reservation — date picker → time slot picker → details form |
-| 5 | `#p4` | Confirmation — "You're in. Your table is reserved." |
+| 4 | `#p3` | Slot Reservation — date picker → time slot picker → party type + details form |
+| 5 | `#p4` | Request Received — "We'll be in touch." |
 
 ## Form fields collected
 
 | Field | Required | Notes |
 |---|---|---|
-| Date | Yes | May 8, May 9, or May 10 — selected via button picker |
-| Time Slot | Yes | One of 7 hourly slots — greyed out if at capacity (10/slot) |
+| Date | Yes | May 8, May 9, or May 10 — button picker |
+| Time Slot | Yes | One of 7 hourly slots — greyed when total confirmed ≥ 10 |
+| Party Type | Yes | "Just me" (solo) or "With a +1" (plus_one) |
 | Full Name | Yes | |
-| Email Address | Yes | Confirmation email sent + duplicate check |
+| Email Address | Yes | Used for duplicate check |
+| WhatsApp Number | Yes | Team uses this to send confirmation |
 | Instagram Handle | No | |
 | TikTok Handle | No | |
-| Phone Number | No | |
 
 ## Slot capacity
 
-Each time slot holds a maximum of **10 reservations per day**. The frontend fetches live booking counts via `doGet` when the guest reaches the reservation page, and greys out full slots. The backend enforces the cap server-side on every `doPost`.
+Each time slot holds a maximum of **10 confirmed bookings per day** (configurable via `SLOT_CAPACITY` in `Code.gs`). Within that, a maximum of **3 solo bookings** per slot (`SOLO_CAP` in `Code.gs`).
+
+The frontend fetches live confirmed counts via `doGet` when the guest reaches the reservation page, and greys out slots that have hit the total cap. The backend auto-assigns each submission a `Status` of `Confirmed` or `Waitlist` — overflow is never hard-rejected, so the team can manage the waitlist via WhatsApp.
 
 ## Known TODOs
 

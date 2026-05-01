@@ -20,7 +20,7 @@ This must be done from the **T's Armoire Google account**, not a personal accoun
 
 The sheet will have the following columns once the first submission arrives:
 
-| ID | Name | Email | Instagram | TikTok | Phone | Date | Time Slot | Registered At |
+| ID | Name | Email | Phone | Instagram | TikTok | Date | Time Slot | Party Type | Status | Submitted At |
 
 ### Step 2 — Create the Apps Script project
 
@@ -38,7 +38,7 @@ The sheet will have the following columns once the first submission arrives:
    - **Execute as**: `Me` (the T's Armoire account)
    - **Who has access**: `Anyone`
 4. Click **Deploy**
-5. Authorize the permissions when prompted (allow access to Sheets and Gmail)
+5. Authorize the permissions when prompted (allow access to Sheets)
 6. Copy the **Web App URL** — it looks like:
    ```
    https://script.google.com/macros/s/XXXXXXXXXXXXXXXX/exec
@@ -76,13 +76,24 @@ If you edit `apps-script/Code.gs`, you must create a **new version** for changes
 
 ### If migrating from a previous deployment (e.g. personal → org account)
 
-If rows were already collected under a previous deployment, ensure all column headers are present in row 1 of the sheet:
+If rows were already collected under a previous deployment, ensure all column headers are present in row 1 of the sheet in this exact order:
 
 ```
-A: ID  B: Name  C: Email  D: Instagram  E: TikTok  F: Phone  G: Date  H: Time Slot  I: Registered At
+A: ID  B: Name  C: Email  D: Phone  E: Instagram  F: TikTok  G: Date  H: Time Slot  I: Party Type  J: Status  K: Submitted At
 ```
 
-Missing columns will cause new submissions to write data to the wrong columns.
+Missing or reordered columns will cause new submissions to write data to the wrong cells.
+
+### Adjusting capacity
+
+Two constants in `Code.gs` control bookings per date+slot:
+
+```js
+const SLOT_CAPACITY = 10;  // max confirmed bookings per slot (total)
+const SOLO_CAP      = 3;   // max confirmed solo bookings per slot
+```
+
+Change either value and re-deploy as a new version (see above). No frontend change needed — the frontend reads `caps` from the `doGet` response.
 
 ---
 
@@ -108,7 +119,22 @@ Before the site goes live:
 
 ---
 
-## Verification checklist
+## 5. WhatsApp message templates (manual — team sends these)
+
+After each booking day, filter the sheet by Status and message guests accordingly.
+
+**Confirmed booking:**
+> Hi [Name], your TSA Café reservation is confirmed! We'll see you on [Date] at [Time Slot]. Can't wait to have you ☕
+
+**Waitlist:**
+> Hi [Name], thanks for requesting a spot at TSA Café! You're currently on our waitlist for [Date] at [Time Slot]. We'll reach out if a spot opens up 🤍
+
+**Day-before reminder (confirmed guests):**
+> Hi [Name], just a reminder — TSA Café is tomorrow! Your slot is [Time Slot] on [Date]. See you then ✨
+
+---
+
+## 6. Verification checklist
 
 After deploying a new Apps Script URL:
 
@@ -116,15 +142,19 @@ After deploying a new Apps Script URL:
 - [ ] Navigate forward through pages 1–3 (opening → experience → what to expect) using the forward arrow
 - [ ] On page 3 (What to Expect), click "Reserve your spot →" — confirms it advances to the slot picker
 - [ ] On page 4 (slot picker), click a date — time slots should appear
-- [ ] Select a time slot — the details form should appear below
-- [ ] Confirm full slots (10 bookings) appear greyed out and are not selectable
-- [ ] Submit the form with all fields filled — confirm it waits for server response before advancing to confirmation page
-- [ ] Confirm the confirmation page shows "You're In" / "Your table is reserved."
-- [ ] Confirm a new row appears in the Google Sheet with all 9 columns populated (ID, Name, Email, Instagram, TikTok, Phone, Date, Time Slot, Registered At)
-- [ ] Confirm the test email inbox receives the confirmation email with the correct date and time slot
-- [ ] Submit the same email again — server should return `duplicate` error; form should show "Already reserved with this email"
-- [ ] Test slot full response: manually insert 10 rows for one slot, then try to book it — server should return `slot_full`; frontend should deselect the slot and prompt to choose another
-- [ ] Kill network mid-submit — form should show "Something went wrong — please try again" and re-enable the button
-- [ ] Submit leaving Instagram, TikTok, and phone blank — sheet should show empty cells, no error
-- [ ] Test on mobile — date/slot buttons are tappable, form scrolls, no swipe navigation on slot picker page
+- [ ] Select a time slot — the party type + details form should appear below
+- [ ] Confirm full slots (10 confirmed bookings) appear greyed out and are not selectable
+- [ ] Submit the form without selecting party type — form shows "Please select your experience"
+- [ ] Submit the form without a phone number — form shows "Please enter your WhatsApp number"
+- [ ] Submit the form with all required fields filled (party type, name, email, phone) — button shows "Requesting →" then advances to request-received page
+- [ ] Confirm page 5 shows "Request Received" / "We'll be in touch."
+- [ ] Confirm a new row appears in the Google Sheet with all 11 columns populated (ID, Name, Email, Phone, Instagram, TikTok, Date, Time Slot, Party Type, Status, Submitted At)
+- [ ] Confirm `Status` column shows `Confirmed` for a fresh booking
+- [ ] Submit as solo when solo count for that slot = 3 but total < 10 — sheet should show `Status: Waitlist`
+- [ ] Submit when total confirmed = 10 — sheet should show `Status: Waitlist` (slot was greyed on frontend)
+- [ ] Submit the same email again — server returns `duplicate` error; form shows "Already reserved with this email"
+- [ ] Kill network mid-submit — form shows "Something went wrong — please try again" and re-enables the button
+- [ ] Submit leaving Instagram and TikTok blank — sheet shows empty cells, no error
+- [ ] Test on mobile — date/slot/party buttons are tappable, form scrolls, no swipe navigation on slot picker page
 - [ ] Check the `Errors` tab in the Google Sheet exists and logs any backend failures
+- [ ] Call `doGet?action=slots` directly — response includes `caps: { solo: 3, total: 10 }` and slot counts grouped by party type
