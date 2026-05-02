@@ -200,12 +200,13 @@ function _sendConfirmation(d, status) {
   const partyLabel  = d.party_type === 'solo' ? 'a table for just you' : 'a table for two';
   const isConfirmed = status === 'Confirmed';
 
-  MailApp.sendEmail({
-    to:       d.email,
-    name:     "T's Armoire",
-    subject:  isConfirmed ? "TSA Café — You're in" : "TSA Café — You're on the list",
-    htmlBody: isConfirmed ? _confirmedBody(firstName, d, partyLabel) : _waitlistBody(firstName, d)
-  });
+  const subject  = isConfirmed ? "TSA Café — You're in" : "TSA Café — You're on the list";
+  const htmlBody = isConfirmed ? _confirmedBody(firstName, d, partyLabel) : _waitlistBody(firstName, d);
+  const body     = isConfirmed
+    ? "You're in, " + firstName + ". " + d.date + " · " + d.time_slot + ". See you soon. — T's Armoire"
+    : "You're on the list, " + firstName + ". We've noted your interest for " + d.date + " · " + d.time_slot + ". — T's Armoire";
+
+  MailApp.sendEmail(d.email, subject, body, { htmlBody: htmlBody, name: "T's Armoire" });
 }
 
 function _confirmedBody(firstName, d, partyLabel) {
