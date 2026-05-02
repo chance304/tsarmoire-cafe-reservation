@@ -204,8 +204,8 @@ function handleSubmit(e) {
     valid = false;
   }
 
-  if (!nameVal) {
-    setFieldError(fieldName, errName, 'Please enter your name');
+  if (!nameVal || nameVal.length < 2) {
+    setFieldError(fieldName, errName, 'Please enter your full name');
     valid = false;
   }
 
@@ -218,12 +218,20 @@ function handleSubmit(e) {
     valid = false;
   }
 
+  const phoneRx = /^[+\d][\d\s\-().]{5,}$/;
   if (!phoneVal) {
     setFieldError(fieldPhone, errPhone, 'Please enter your WhatsApp number');
     valid = false;
+  } else if (!phoneRx.test(phoneVal)) {
+    setFieldError(fieldPhone, errPhone, 'Please enter a valid phone number');
+    valid = false;
   }
 
-  if (!valid) return;
+  if (!valid) {
+    const firstError = document.querySelector('#slot-error[style*="block"], #party-error[style*="block"], .field.invalid');
+    if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
 
   /* Loading state */
   const btn = document.getElementById('rsvp-btn');

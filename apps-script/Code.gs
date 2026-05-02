@@ -74,10 +74,11 @@ function _respond(payload) {
 }
 
 function _validate(d) {
-  if (!d.name || String(d.name).trim().length === 0) return 'name_required';
+  if (!d.name || String(d.name).trim().length < 2) return 'name_required';
   const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!d.email || !emailRx.test(String(d.email).trim())) return 'invalid_email';
-  if (!d.phone || String(d.phone).trim().length === 0) return 'phone_required';
+  const phoneRx = /^[+\d][\d\s\-().]{5,}$/;
+  if (!d.phone || !phoneRx.test(String(d.phone).trim())) return 'invalid_phone';
   if (d.party_type !== 'solo' && d.party_type !== 'plus_one') return 'party_type_required';
   if (!d.date || String(d.date).trim().length === 0) return 'date_required';
   if (!d.time_slot || String(d.time_slot).trim().length === 0) return 'slot_required';
