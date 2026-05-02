@@ -25,22 +25,22 @@ Page 3 · What to Expect
   → "Reserve your spot →" button (only way forward)
 
 Page 4 · Slot Reservation
-  Step 1: Pick a date      → May 8 / May 9 / May 10
-  Step 2: Pick a time      → 7 hourly slots appear
-                              (greyed out per party-type cap)
-  Step 3: Fill the form    → Party type, Name, Email,
-                              WhatsApp, Instagram, TikTok
+  Step 1: Pick a date        → May 8 / May 9 / May 10
+  Step 2: Pick experience    → Just me / With a +1
+  Step 3: Pick a time        → 7 slots appear, party-type-aware
+                                Available slots → solid border
+                                Full slots → dashed border, "· Waitlist" label
+                                (all slots selectable — no slots disabled)
+  Step 4: Fill the form      → Name, Email, WhatsApp, Instagram, TikTok
+                                If waitlist slot selected: notice bar shown
+                                "You're joining the waitlist for this slot"
   → "Request Reservation →"
-
-  If slot is full for party type:
-    Waitlist nudge appears — "Pick another time →" or "Join waitlist →"
-    (Guest stays on page 4 until they choose)
 
 Page 5 · Request Received (Confirmed)
   "We'll be in touch."
   "Your request has been received. We'll reach out to confirm shortly."
 
-Page 5 · You're on the List (Waitlist — after clicking "Join waitlist →")
+Page 5 · You're on the List (Waitlist)
   "You're on the list."
   "This slot is full, but you're on the waitlist. We'll reach out if a spot opens up."
 ```

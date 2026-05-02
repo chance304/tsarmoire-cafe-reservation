@@ -57,11 +57,11 @@ Keyboard (ArrowRight/Enter) and swipe navigation are disabled on pages 2 and 3.
 
 Four-step progressive reveal on a single scrollable page:
 1. **Date buttons** — May 8 / May 9 / May 10 (always visible)
-2. **Time slot buttons** — 7 hourly slots, revealed after date selected; slots get `.full` class and are `disabled` based on party type: total ≥ `SLOT_CAPACITY`, or solo ≥ `SOLO_CAP` (when "Just me" is selected), or plus_one ≥ `PLUS_ONE_CAP` (when "With a +1" is selected)
-3. **Party type** — "Just me" (solo) / "With a +1" (plus_one) — required, revealed with the form; changing party type immediately re-evaluates slot availability
-4. **Details form** — name (min 2 chars, required), email (required), WhatsApp number (min 7 digits, required), Instagram, TikTok (optional); revealed after slot selected
+2. **Party type** — "Just me" (solo) / "With a +1" (plus_one) — revealed after date selected; changing party type immediately re-evaluates slot availability
+3. **Time slot buttons** — 7 hourly slots, revealed after party type selected; full slots get `.waitlist` class (dashed border, `· Waitlist` label) but remain **clickable** — not disabled
+4. **Details form** — revealed after slot selected; if a waitlist slot is chosen, a notice bar appears: "You're joining the waitlist for this slot"; fields: name (min 2 chars, required), email (required), WhatsApp number (min 7 digits, required), Instagram, TikTok (optional)
 
-Slot availability is fetched via `doGet(?action=slots)` every time the user enters #p3. Greying is **party-type-aware** — a slot can be available for +1 but greyed for solo if the single solo cap is taken.
+Slot availability is fetched via `doGet(?action=slots)` every time the user enters #p3. Greying is **party-type-aware** — a slot shows `.waitlist` for solo if solo cap is taken, even if +1 spots remain. Full slots are intentionally selectable; the user knowingly joins the waitlist. On server `Waitlist` response, page 5 shows waitlist copy directly (no post-submit nudge).
 
 ## Backend
 

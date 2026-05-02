@@ -144,8 +144,9 @@ After deploying a new Apps Script URL:
 - [ ] On page 3 (What to Expect), click "Reserve your spot →" — confirms it advances to the slot picker
 - [ ] On page 4 (slot picker), click a date — time slots should appear
 - [ ] Select a time slot — the party type + details form should appear below
-- [ ] Select a date — time slots appear; slots at total cap (≥ 5 confirmed) appear greyed out
-- [ ] Select "Just me" and a date where the solo spot is taken — that slot greys out even if +1 spots remain
+- [ ] Select a date — party type buttons appear ("Just me" / "With a +1")
+- [ ] Select party type — time slots appear; slots at cap for that party type show dashed border with "· Waitlist" label and remain selectable
+- [ ] Select "Just me" on a date where the solo spot is taken — that slot shows as Waitlist even if +1 spots remain
 - [ ] Submit the form without selecting party type — form shows "Please select your experience"
 - [ ] Submit the form with a name under 2 characters — form shows "Please enter your full name"
 - [ ] Submit the form with an invalid phone format (e.g. `abc`) — form shows "Please enter a valid phone number"
@@ -155,10 +156,11 @@ After deploying a new Apps Script URL:
 - [ ] Confirm a new row appears in the Google Sheet with all 11 columns populated (ID, Name, Email, Phone, Instagram, TikTok, Date, Time Slot, Party Type, Status, Submitted At)
 - [ ] Confirm `Status` column shows `Confirmed` for a fresh booking
 - [ ] Confirm a confirmation email is sent to the guest on submit (check inbox)
-- [ ] Submit as solo when solo count for that slot = 1 — server returns `Waitlist` with reason `solo_full`; guest sees waitlist nudge with "Pick another time" and "Join waitlist" options
-- [ ] Submit as +1 when plus_one count for that slot = 4 — server returns `Waitlist` with reason `plus_one_full`; nudge appears
-- [ ] Submit when total confirmed = 5 — sheet should show `Status: Waitlist`; waitlist email sent
-- [ ] Click "Join waitlist →" on nudge — page 5 shows waitlist copy; waitlist email arrives
+- [ ] Select a Waitlist slot — notice bar appears in form: "You're joining the waitlist for this slot"
+- [ ] Submit on a Waitlist slot — page 5 shows "You're on the List" / "You're on the list."; waitlist email arrives
+- [ ] Submit as solo when solo count for that slot = 1 — server returns `Waitlist`; page 5 shows waitlist copy
+- [ ] Submit as +1 when plus_one count for that slot = 4 — server returns `Waitlist`; page 5 shows waitlist copy
+- [ ] Submit when total confirmed = 5 — sheet shows `Status: Waitlist`; waitlist email sent
 - [ ] Submit the same email again (already Confirmed) — server returns `duplicate` error; form shows "Already reserved with this email"
 - [ ] Kill network mid-submit — form shows "Something went wrong — please try again" and re-enables the button
 - [ ] Submit leaving Instagram and TikTok blank — sheet shows empty cells, no error
