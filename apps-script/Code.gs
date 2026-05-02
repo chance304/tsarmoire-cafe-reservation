@@ -51,6 +51,13 @@ function doPost(e) {
     return _respond({ ok: false, error: 'server_error' });
   }
 
+  /* Send confirmation email — failure is non-blocking */
+  try {
+    _sendConfirmation(data, status);
+  } catch (err) {
+    _logError('email', err);
+  }
+
   return _respond({ ok: true, status });
 }
 
@@ -186,6 +193,50 @@ function _appendRow(d, status) {
     status,
     d.registered_at
   ]);
+}
+
+function _sendConfirmation(d, status) {
+  const firstName   = String(d.name).trim().split(/\s+/)[0];
+  const partyLabel  = d.party_type === 'solo' ? 'a table for just you' : 'a table for two';
+  const isConfirmed = status === 'Confirmed';
+
+  MailApp.sendEmail({
+    to:       d.email,
+    name:     "T's Armoire",
+    subject:  isConfirmed ? "TSA Café — You're in" : "TSA Café — You're on the list",
+    htmlBody: isConfirmed ? _confirmedBody(firstName, d, partyLabel) : _waitlistBody(firstName, d)
+  });
+}
+
+function _confirmedBody(firstName, d, partyLabel) {
+  return `
+    <div style="font-family:'Georgia',serif;color:#151514;max-width:480px;margin:0 auto;padding:40px 0">
+      <p style="font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:#96815c;margin:0 0 32px">T's Armoire</p>
+      <h1 style="font-size:2rem;font-weight:400;margin:0 0 8px">You're in, ${firstName}.</h1>
+      <p style="font-size:1rem;color:#444;margin:0 0 28px;line-height:1.6">We've reserved ${partyLabel} at TSA Café.</p>
+      <p style="font-size:1.1rem;font-weight:400;margin:0 0 32px">
+        <strong>${d.date}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
+      </p>
+      <p style="color:#444;line-height:1.7;margin:0 0 12px">Get ready for good coffee, great fits, and an experience you'll want to stay in.</p>
+      <p style="color:#444;line-height:1.7;margin:0 0 40px">We'll see you soon.</p>
+      <p style="font-size:.85rem;color:#888;margin:0">— T's Armoire</p>
+    </div>
+  `;
+}
+
+function _waitlistBody(firstName, d) {
+  return `
+    <div style="font-family:'Georgia',serif;color:#151514;max-width:480px;margin:0 auto;padding:40px 0">
+      <p style="font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:#96815c;margin:0 0 32px">T's Armoire</p>
+      <h1 style="font-size:2rem;font-weight:400;margin:0 0 8px">You're on the list, ${firstName}.</h1>
+      <p style="font-size:1rem;color:#444;margin:0 0 28px;line-height:1.6">We've noted your interest for:</p>
+      <p style="font-size:1.1rem;font-weight:400;margin:0 0 32px">
+        <strong>${d.date}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
+      </p>
+      <p style="color:#444;line-height:1.7;margin:0 0 40px">If a confirmed spot opens up, we'll reach out to you directly.</p>
+      <p style="font-size:.85rem;color:#888;margin:0">— T's Armoire</p>
+    </div>
+  `;
 }
 
 function _logError(context, err) {
