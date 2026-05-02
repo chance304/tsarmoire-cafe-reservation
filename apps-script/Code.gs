@@ -5,6 +5,7 @@ const RATE_WINDOW_MS = 60 * 1000; /* 1 minute */
 const RATE_MAX       = 15;        /* max submissions per window globally */
 const SLOT_CAPACITY  = 5;         /* max confirmed bookings per date+slot (total): 1 solo + 4 +1 tables */
 const SOLO_CAP       = 1;         /* max confirmed solo bookings per date+slot */
+const PLUS_ONE_CAP   = 4;         /* max confirmed +1 bookings per date+slot */
 
 function doGet(e) {
   if (e.parameter.action === 'slots') {
@@ -40,15 +41,18 @@ function doPost(e) {
     return _respond({ ok: false, error: 'duplicate' });
   }
 
-  /* Determine confirmed vs waitlist */
-  const status = _determineStatus(data);
-
-  /* Write to sheet */
+  /* Determine confirmed vs waitlist — locked to prevent race conditions */
+  let status;
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
+    status = _determineStatus(data);
     _appendRow(data, status);
   } catch (err) {
     _logError('sheet_write', err);
     return _respond({ ok: false, error: 'server_error' });
+  } finally {
+    lock.releaseLock();
   }
 
   /* Send confirmation email — failure is non-blocking */
@@ -113,11 +117,13 @@ function _determineStatus(data) {
       String(row[3]).trim() === 'Confirmed'
     );
 
-    const totalConfirmed = confirmedRows.length;
-    const soloConfirmed  = confirmedRows.filter(row => String(row[2]).trim() === 'solo').length;
+    const totalConfirmed   = confirmedRows.length;
+    const soloConfirmed    = confirmedRows.filter(row => String(row[2]).trim() === 'solo').length;
+    const plusOneConfirmed = confirmedRows.filter(row => String(row[2]).trim() === 'plus_one').length;
 
-    if (totalConfirmed >= SLOT_CAPACITY) return 'Waitlist';
-    if (data.party_type === 'solo' && soloConfirmed >= SOLO_CAP) return 'Waitlist';
+    if (totalConfirmed >= SLOT_CAPACITY)                                    return 'Waitlist';
+    if (data.party_type === 'solo'     && soloConfirmed    >= SOLO_CAP)     return 'Waitlist';
+    if (data.party_type === 'plus_one' && plusOneConfirmed >= PLUS_ONE_CAP) return 'Waitlist';
     return 'Confirmed';
   } catch (err) {
     _logError('determine_status', err);
