@@ -208,13 +208,6 @@ function handleSubmit(e) {
 
   if (!valid) return;
 
-  /* Duplicate check */
-  const existing = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
-  if (existing.some(r => r.email.toLowerCase() === emailVal.toLowerCase())) {
-    setFieldError(fieldEmail, errEmail, 'Already reserved with this email');
-    return;
-  }
-
   /* Loading state */
   const btn = document.getElementById('rsvp-btn');
   btn.textContent = 'Requesting →';
@@ -242,14 +235,10 @@ function handleSubmit(e) {
   .then(res => res.json())
   .then(data => {
     if (data.ok) {
-      existing.push(entry);
-      localStorage.setItem(STORE_KEY, JSON.stringify(existing));
       if (window.gtag) gtag('event', 'reservation_complete', { event_category: 'engagement' });
       go(1);
     } else if (data.error === 'duplicate') {
       setFieldError(fieldEmail, errEmail, 'Already reserved with this email');
-      existing.push(entry);
-      localStorage.setItem(STORE_KEY, JSON.stringify(existing));
       btn.textContent = 'Request Reservation →';
       btn.disabled = false;
     } else {
