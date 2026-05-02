@@ -240,6 +240,10 @@ function _waitlistBody(firstName, d) {
   `;
 }
 
+function testEmail() {
+  MailApp.sendEmail(Session.getActiveUser().getEmail(), 'TSA Café — email test', 'MailApp is authorized and working.');
+}
+
 function _logError(context, err) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
