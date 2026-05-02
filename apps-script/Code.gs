@@ -106,7 +106,7 @@ function _determineStatus(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet || sheet.getLastRow() < 2) return 'Confirmed';
+    if (!sheet || sheet.getLastRow() < 2) return { status: 'Confirmed', reason: null };
 
     /* Columns: 7=Date, 8=Time Slot, 9=Party Type, 10=Status */
     const rows = sheet.getRange(2, 7, sheet.getLastRow() - 1, 4).getValues();
@@ -154,10 +154,10 @@ function _getSlotAvailability() {
       });
     }
 
-    return _respond({ ok: true, slots, caps: { solo: SOLO_CAP, total: SLOT_CAPACITY } });
+    return _respond({ ok: true, slots, caps: { solo: SOLO_CAP, plus_one: PLUS_ONE_CAP, total: SLOT_CAPACITY } });
   } catch (err) {
     _logError('slots_fetch', err);
-    return _respond({ ok: true, slots: {}, caps: { solo: SOLO_CAP, total: SLOT_CAPACITY } });
+    return _respond({ ok: true, slots: {}, caps: { solo: SOLO_CAP, plus_one: PLUS_ONE_CAP, total: SLOT_CAPACITY } });
   }
 }
 

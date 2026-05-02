@@ -6,7 +6,7 @@ let selectedDate     = null;
 let selectedSlot     = null;
 let selectedPartyType = null;
 let slotData         = {};
-let caps             = { solo: 3, total: 10 }; /* updated from server on fetchSlots() */
+let caps             = { solo: 1, plus_one: 4, total: 5 }; /* updated from server on fetchSlots() */
 
 const STORE_KEY  = 'tsa_cafe_reservations_v2';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOWffk9eNwLa-fUC-gNlhfemHoTd2ZuWDz8yj4jmlqAdcB44u3fgj6v49lLZb0GheXcA/exec';
@@ -86,8 +86,10 @@ function updateSlotAvailability() {
   const slotCounts = (slotData[selectedDate] || {});
   document.querySelectorAll('#slot-times .slot-btn').forEach(btn => {
     const slot = btn.dataset.slot;
-    const info = slotCounts[slot] || { total: 0 };
-    const isFull = info.total >= caps.total;
+    const info = slotCounts[slot] || { solo: 0, plus_one: 0, total: 0 };
+    let isFull = info.total >= caps.total;
+    if (!isFull && selectedPartyType === 'solo')     isFull = info.solo     >= caps.solo;
+    if (!isFull && selectedPartyType === 'plus_one') isFull = info.plus_one >= caps.plus_one;
     btn.classList.toggle('full', isFull);
     btn.disabled = isFull;
     if (isFull && btn.classList.contains('selected')) {
@@ -144,6 +146,7 @@ function selectParty(btn) {
   btn.classList.add('selected');
   selectedPartyType = btn.dataset.party;
   document.getElementById('party-error').style.display = 'none';
+  if (selectedDate) updateSlotAvailability();
 }
 
 /* ── Registration ────────────────────────────────────────── */
