@@ -7,6 +7,45 @@ const SLOT_CAPACITY  = 5;         /* max confirmed bookings per date+slot (total
 const SOLO_CAP       = 1;         /* max confirmed solo bookings per date+slot */
 const PLUS_ONE_CAP   = 4;         /* max confirmed +1 bookings per date+slot */
 
+/* ── Date helpers ──────────────────────────────────────────── */
+
+/* Convert any date value from the sheet (Date object or legacy "May N" string) → "YYYY-MM-DD".
+   Returns '' for empty/null values so callers' !date guards still work. */
+function _dateKey(val) {
+  if (!val) return '';
+  let d;
+  if (val instanceof Date) {
+    d = val;
+  } else {
+    const s = String(val).trim();
+    const legacy = s.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)$/);
+    if (legacy) {
+      const M = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+      d = new Date(2026, M[legacy[1]], parseInt(legacy[2], 10));
+    } else {
+      d = new Date(s);
+    }
+  }
+  const y   = d.getFullYear();
+  const mo  = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+/* Parse ISO "2026-05-08" from the frontend into a local-time Date object for sheet storage */
+function _toDate(isoStr) {
+  const [y, mo, day] = String(isoStr).split('-').map(Number);
+  return new Date(y, mo - 1, day);
+}
+
+/* ISO "2026-05-08" → "May 8" for email display */
+function _displayDate(isoStr) {
+  const d = _toDate(isoStr);
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
 function doGet(e) {
   if (e.parameter.action === 'slots') {
     return _getSlotAvailability();
@@ -113,7 +152,7 @@ function _determineStatus(data) {
     const rows = sheet.getRange(2, 7, sheet.getLastRow() - 1, 4).getValues();
 
     const confirmedRows = rows.filter(row =>
-      String(row[0]).trim() === String(data.date).trim() &&
+      _dateKey(row[0]) === data.date &&
       String(row[1]).trim() === String(data.time_slot).trim() &&
       String(row[3]).trim() === 'Confirmed'
     );
@@ -142,7 +181,7 @@ function _getSlotAvailability() {
       /* Columns: 7=Date, 8=Time Slot, 9=Party Type, 10=Status */
       const rows = sheet.getRange(2, 7, sheet.getLastRow() - 1, 4).getValues();
       rows.forEach(row => {
-        const date      = String(row[0]).trim();
+        const date      = _dateKey(row[0]);
         const slot      = String(row[1]).trim();
         const partyType = String(row[2]).trim();
         const status    = String(row[3]).trim();
@@ -197,17 +236,17 @@ function _appendRow(d, status) {
     d.phone      || '',
     d.instagram  || '',
     d.tiktok     || '',
-    d.date       || '',
+    _toDate(d.date),   /* store as proper Date object — never a text string Sheets can misparse */
     d.time_slot  || '',
     d.party_type || '',
     status,
     d.registered_at
   ];
   const nextRow = sheet.getLastRow() + 1;
-  /* Force Date (col 7) and Time Slot (col 8) as plain text — prevents Google
-     Sheets from auto-converting "May 8" to a Date serial, which breaks the
-     string comparison in _determineStatus and _getSlotAvailability. */
-  sheet.getRange(nextRow, 7, 1, 2).setNumberFormat('@');
+  /* Keep Time Slot (col 8) as plain text — its value contains en-dashes and
+     times that Sheets might otherwise try to reformat. Date (col 7) is now a
+     real Date object so no text-format guard is needed there. */
+  sheet.getRange(nextRow, 8, 1, 1).setNumberFormat('@');
   sheet.getRange(nextRow, 1, 1, rowData.length).setValues([rowData]);
 }
 
@@ -216,23 +255,24 @@ function _sendConfirmation(d, status) {
   const partyLabel  = d.party_type === 'solo' ? 'a table for just you' : 'a table for two';
   const isConfirmed = status === 'Confirmed';
 
+  const displayDate = _displayDate(d.date);
   const subject  = isConfirmed ? "TSA Café — You're in" : "TSA Café — You're on the list";
-  const htmlBody = isConfirmed ? _confirmedBody(firstName, d, partyLabel) : _waitlistBody(firstName, d);
+  const htmlBody = isConfirmed ? _confirmedBody(firstName, d, partyLabel, displayDate) : _waitlistBody(firstName, d, displayDate);
   const body     = isConfirmed
-    ? "You're in, " + firstName + ". " + d.date + " · " + d.time_slot + ". See you soon. — T's Armoire"
-    : "You're on the list, " + firstName + ". We've noted your interest for " + d.date + " · " + d.time_slot + ". — T's Armoire";
+    ? "You're in, " + firstName + ". " + displayDate + " · " + d.time_slot + ". See you soon. — T's Armoire"
+    : "You're on the list, " + firstName + ". We've noted your interest for " + displayDate + " · " + d.time_slot + ". — T's Armoire";
 
   MailApp.sendEmail(d.email, subject, body, { htmlBody: htmlBody, name: "T's Armoire" });
 }
 
-function _confirmedBody(firstName, d, partyLabel) {
+function _confirmedBody(firstName, d, partyLabel, displayDate) {
   return `
     <div style="font-family:'Georgia',serif;color:#151514;max-width:480px;margin:0 auto;padding:40px 0">
       <p style="font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:#96815c;margin:0 0 32px">T's Armoire</p>
       <h1 style="font-size:2rem;font-weight:400;margin:0 0 8px">You're in, ${firstName}.</h1>
       <p style="font-size:1rem;color:#444;margin:0 0 28px;line-height:1.6">We've reserved ${partyLabel} at TSA Café.</p>
       <p style="font-size:1.1rem;font-weight:400;margin:0 0 32px">
-        <strong>${d.date}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
+        <strong>${displayDate}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
       </p>
       <p style="color:#444;line-height:1.7;margin:0 0 12px">Get ready for good coffee, great fits, and an experience you'll want to stay in.</p>
       <p style="color:#444;line-height:1.7;margin:0 0 40px">We'll see you soon.</p>
@@ -241,14 +281,14 @@ function _confirmedBody(firstName, d, partyLabel) {
   `;
 }
 
-function _waitlistBody(firstName, d) {
+function _waitlistBody(firstName, d, displayDate) {
   return `
     <div style="font-family:'Georgia',serif;color:#151514;max-width:480px;margin:0 auto;padding:40px 0">
       <p style="font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:#96815c;margin:0 0 32px">T's Armoire</p>
       <h1 style="font-size:2rem;font-weight:400;margin:0 0 8px">You're on the list, ${firstName}.</h1>
       <p style="font-size:1rem;color:#444;margin:0 0 28px;line-height:1.6">We've noted your interest for:</p>
       <p style="font-size:1.1rem;font-weight:400;margin:0 0 32px">
-        <strong>${d.date}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
+        <strong>${displayDate}</strong> &nbsp;&middot;&nbsp; ${d.time_slot}
       </p>
       <p style="color:#444;line-height:1.7;margin:0 0 40px">If a confirmed spot opens up, we'll reach out to you directly.</p>
       <p style="font-size:.85rem;color:#888;margin:0">— T's Armoire</p>
