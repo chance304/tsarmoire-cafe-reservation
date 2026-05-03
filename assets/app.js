@@ -9,7 +9,7 @@ let slotData         = {};
 let caps             = { solo: 1, plus_one: 4, total: 5 }; /* updated from server on fetchSlots() */
 
 const STORE_KEY  = 'tsa_cafe_reservations_v2';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAO1JJJOWMKTDmjSo1Xj5bvv9T1xjkRCUVMSVFJVllIAKqMfiMQxswWPqq_f1He4X_MA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzPCw-mai7Kmo8XL6FKCpeYQxt-jWU6IEJYADPO4qX1UGJkayDYGL9k9f6g7Xje8ziTXQ/exec';
 
 const pages    = document.querySelectorAll('.page');
 const curtain  = document.getElementById('curtain');
